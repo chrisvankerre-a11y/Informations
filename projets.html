@@ -39,43 +39,84 @@
   </div>
 
   <script>
-
-    const RAW_URL = "https://gist.githubusercontent.com/chrisvankerre-a11y/88c2d18e8025bfa5634c99b39e780d06/raw/projets.json";
+// --- CONFIG ---
+  const ROLE = localStorage.getItem('role') || 'viewer';
+  const RAW_URL = "https://gist.githubusercontent.com/chrisvankerre-a11y/88c2d18e8025bfa5634c99b39e780d06/raw/projets.json";
   const API_PROXY = "https://aged-block-6820.chrisvankerre.workers.dev/write";
-    
-    const ROLE = localStorage.getItem('role') || 'viewer';
-    const editPanel = document.getElementById('edit-panel');
-    if (ROLE === 'editor' || ROLE === 'admin') editPanel.classList.remove('hidden');
 
-    const KEY = 'projects';
-    const listEl = document.getElementById('list');
-    const read = () => JSON.parse(localStorage.getItem(KEY) || '[]');
-    const write = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
+  const editPanel = document.getElementById('edit-panel');
+  if (ROLE === 'editor' || ROLE === 'admin') editPanel.classList.remove('hidden');
 
-    const render = () => {
-      listEl.innerHTML = '';
-      for (const p of read()) {
-        const li = document.createElement('li');
-        li.innerHTML = `<strong>${p.name}</strong> — ${p.desc}`;
-        listEl.appendChild(li);
-      }
-      if (listEl.children.length === 0) listEl.innerHTML = '<li>(Aucun projet)</li>';
-    };
+  const listEl = document.getElementById('list');
 
-    document.getElementById('add').onclick = () => {
-      const name = document.getElementById('pname').value.trim();
-      const desc = document.getElementById('pdesc').value.trim();
-      if (!name) return alert('Nom du projet requis.');
-      const arr = read();
-      const idx = arr.findIndex(x => x.name.toLowerCase() === name.toLowerCase());
-      if (idx >= 0) arr[idx].desc = desc; else arr.push({name, desc});
-      write(arr); render();
-      document.getElementById('pname').value = '';
-      document.getElementById('pdesc').value = '';
-    };
+  async function loadProjects() {
+    try {
+      const r = await fetch(RAW_URL, { cache: "no-store" });
+      if (!r.ok) throw new Error("raw fetch failed");
+      const txt = await r.text();
+      const data = JSON.parse(txt || "[]");
+      render(data);
+      return data;
+    } catch (e) {
+      console.error(e);
+      listEl.innerHTML = '<li>Erreur de chargement.</li>';
+      return [];
+    }
+  }
 
-    render();
+  function render(arr) {
+    listEl.innerHTML = '';
+    if (!Array.isArray(arr) || arr.length === 0) {
+      listEl.innerHTML = '<li>(Aucun projet)</li>';
+      return;
+    }
+    for (const p of arr) {
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${escapeHTML(p.name || '')}</strong> — ${escapeHTML(p.desc || '')}`;
+      listEl.appendChild(li);
+    }
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  document.getElementById('add')?.addEventListener('click', async () => {
+    if (!(ROLE === 'editor' || ROLE === 'admin')) {
+      alert("Droits insuffisants.");
+      return;
+    }
+    const name = document.getElementById('pname').value.trim();
+    const desc = document.getElementById('pdesc').value.trim();
+    if (!name) return alert('Nom du projet requis.');
+
+    const current = await loadProjects();
+    const idx = current.findIndex(x => (x.name || '').toLowerCase() === name.toLowerCase());
+    if (idx >= 0) current[idx].desc = desc; else current.push({ name, desc });
+
+    const res = await fetch(API_PROXY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: current })
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      console.error(t);
+      alert("Échec de la sauvegarde.");
+      return;
+    }
+
+    const fresh = await loadProjects();
+    render(fresh);
+    document.getElementById('pname').value = '';
+    document.getElementById('pdesc').value = '';
+  });
+
+  loadProjects();
+
   </script>
 </body>
 </html>
+
 
