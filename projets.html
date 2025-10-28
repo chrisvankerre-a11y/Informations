@@ -39,6 +39,10 @@
   </div>
 
   <script>
+
+    const RAW_URL = "https://gist.githubusercontent.com/chrisvankerre-a11y/88c2d18e8025bfa5634c99b39e780d06/raw/projets.json";
+  const API_PROXY = "https://aged-block-6820.chrisvankerre.workers.dev/write";
+    
     const ROLE = localStorage.getItem('role') || 'viewer';
     const editPanel = document.getElementById('edit-panel');
     if (ROLE === 'editor' || ROLE === 'admin') editPanel.classList.remove('hidden');
@@ -74,3 +78,4 @@
   </script>
 </body>
 </html>
+
