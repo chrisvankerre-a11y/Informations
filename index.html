@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tableau d'information – Accueil</title>
+    <meta name="description" content="Tableau d'information – Page d'accueil avec liens vers les sections thématiques." />
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a2f;
+        --text: #e6ebff;
+        --muted: #a7b0d8;
+        --brand: #7aa2ff;
+        --accent: #5ee1a0;
+        --border: #233055;
+        --warn: #ffd166;
+        --danger: #ff6b6b;
+        --focus: #9db8ff;
+        --radius: 16px;
+        --shadow: 0 10px 30px rgba(0,0,0,.35);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+        background: radial-gradient(1000px 600px at 10% 0%, #101735, #0b1020 55%);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      a { color: inherit; text-decoration: none; }
+      .container { max-width: 1100px; margin: 0 auto; padding: 28px; }
+
+      /* Header */
+      header {
+        display: grid; gap: 18px; align-items: center;
+        grid-template-columns: auto 1fr auto;
+        padding: 14px 0 4px;
+      }
+      .brand { display:flex; align-items:center; gap:12px; }
+      .logo {
+        width: 40px; height: 40px; border-radius: 10px;
+        background: linear-gradient(135deg, var(--brand), var(--accent));
+        box-shadow: 0 6px 18px rgba(122,162,255,.35);
+      }
+      .title { font-weight: 700; letter-spacing: .3px; }
+      .tagline { color: var(--muted); font-size: .95rem; }
+      .badge {
+        display:inline-flex; align-items:center; gap:8px;
+        padding: 6px 10px; border-radius: 999px; font-size: .85rem;
+        background: #0f1630; border: 1px solid var(--border); color: var(--muted);
+      }
+
+      /* Hero */
+      .hero {
+        margin-top: 16px; padding: 26px; border-radius: var(--radius);
+        background: linear-gradient(180deg, rgba(18,26,47,.9), rgba(18,26,47,.65));
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+      .hero h1 { margin: 0 0 10px; font-size: 1.65rem; }
+      .hero p { margin: 0; color: var(--muted); }
+
+      /* Grid of cards */
+      .grid { display:grid; gap: 16px; margin-top: 22px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+      .card {
+        display:flex; flex-direction:column; justify-content:space-between;
+        padding: 18px; border-radius: var(--radius);
+        background: linear-gradient(180deg, #0f1730, #0c1327);
+        border: 1px solid var(--border);
+        transition: transform .12s ease, border-color .12s ease;
+        min-height: 160px;
+      }
+      .card:hover { transform: translateY(-2px); border-color: #2e3e6d; }
+      .card h3 { margin: 2px 0 8px; font-size: 1.05rem; }
+      .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+      .chip { display:inline-flex; align-items:center; gap:6px; padding: 4px 8px; border-radius:999px; font-size:.8rem; border:1px solid var(--border); color:var(--muted); }
+      .chip.view { background:#0e1a34; }
+      .chip.code { background:#22190c; color:#ffdca8; border-color:#473314; }
+      .chip.edit { background:#0f2a21; color:#9ae8c0; border-color:#224b3a; }
+      .chip.admin { background:#2a0f17; color:#ffb0b8; border-color:#51222b; }
+
+      /* Footer */
+      footer { margin: 28px 0 12px; color: var(--muted); font-size: .9rem; display:flex; justify-content:space-between; gap: 10px; flex-wrap: wrap; }
+      .links { display:flex; gap: 12px; }
+      .links a { opacity:.85; }
+      .links a:hover { opacity:1; text-decoration: underline; }
+
+      /* Utilities */
+      .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+      .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="brand" aria-label="Accueil">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <div class="title">Tableau d'information</div>
+            <div class="tagline">Communication générale · Liens vers pages thématiques</div>
+          </div>
+        </div>
+        <div></div>
+        <div class="row" aria-label="États d'accès">
+          <span class="badge" title="La plupart des pages sont en consultation uniquement">Consultation</span>
+          <span class="badge" title="Certaines pages nécessitent un code">Code requis</span>
+          <span class="badge" title="Éditeurs désignés uniquement">Éditeur</span>
+          <span class="badge" title="Accès complet">Admin</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <h1 id="hero-title">Bienvenue 👋</h1>
+          <p>
+            Cette page d'accueil présente les informations générales et des liens vers les sections du tableau.
+            Chaque lien ouvre une page <strong>HTML dédiée</strong> pour faciliter les modifications.
+          </p>
+        </section>
+
+        <section class="grid" aria-label="Sections">
+          <!-- Exemple de cartes liens. Remplacez les href par vos fichiers. -->
+          <a class="card" href="infos.html">
+            <div>
+              <div class="row">
+                <div class="chip view">Consultation</div>
+              </div>
+              <h3>Actualités & Annonces</h3>
+              <p>Messages généraux, notes internes, informations à jour.</p>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+
+          <a class="card" href="equipe.html">
+            <div>
+              <div class="row">
+                <div class="chip view">Consultation</div>
+              </div>
+              <h3>Équipe</h3>
+              <p>Organigramme, contacts, rôles et disponibilités.</p>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+
+          <a class="card" href="projets.html">
+            <div>
+              <div class="row">
+                <div class="chip edit">Éditeur</div>
+              </div>
+              <h3>Projets</h3>
+              <p>Avancement, jalons, statuts – modifiable par les éditeurs.</p>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+
+          <a class="card" href="documents.html">
+            <div>
+              <div class="row">
+                <div class="chip code">Code requis</div>
+              </div>
+              <h3>Documents</h3>
+              <p>Accès sur code (lecture seule) aux documents sensibles.</p>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+
+          <a class="card" href="admin.html">
+            <div>
+              <div class="row">
+                <div class="chip admin">Admin</div>
+              </div>
+              <h3>Administration</h3>
+              <p>Paramètres et gestion des accès (réservé aux administrateurs).</p>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      </main>
+
+      <footer>
+        <div>© <span id="year"></span> Tableau d'information</div>
+        <nav class="links" aria-label="Liens utilitaires">
+          <a href="aide.html">Aide</a>
+          <a href="mentions.html">Mentions légales</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+      </footer>
+    </div>
+
+    <script>
+      // Petite amélioration d'accessibilité/UX
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // 🔐 Placeholder autorisation (à remplacer plus tard par une vraie logique):
+      // - Nous masquerons/afficherons certaines cartes selon le rôle.
+      // - Le rôle courant peut venir du stockage local (set par une page de login simple), d'un token, etc.
+      // ⚠️ Important: ceci N'EST PAS une sécurité réelle sur GitHub Pages (côté client seulement).
+      const ROLE = localStorage.getItem('role') || 'viewer';
+      const hideFor = (selector, predicate) => {
+        document.querySelectorAll(selector).forEach(el => { if (predicate()) el.style.display = 'none'; });
+      };
+      // Exemple: masquer Admin si role != admin
+      hideFor('a[href="admin.html"]', () => ROLE !== 'admin');
+      // Exemple: masquer Projets (éditeur) si role ni admin ni editor
+      hideFor('a[href="projets.html"]', () => !(ROLE === 'editor' || ROLE === 'admin'));
+      // Les pages "code requis" seront gérées par un prompt côté page cible.
+    </script>
+  </body>
+</html>
