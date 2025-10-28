@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documents (code requis) – Tableau d'information</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b1020;color:#e6ebff}
+    .container{max-width:900px;margin:0 auto;padding:28px}
+    .panel{background:#121a2f;border:1px solid #233055;border-radius:16px;padding:20px}
+    input,button{background:#0f1630;color:#e6ebff;border:1px solid #233055;border-radius:10px;padding:10px 14px}
+    .muted{color:#a7b0d8}
+    a{color:#9db8ff}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Documents (lecture seule)</h1>
+    <p class="muted">Accès sur code (démo côté client).</p>
+
+    <div id="gate" class="panel">
+      <p>Entrez le code d’accès :</p>
+      <input id="code" placeholder="Code d’accès" />
+      <button id="check">Valider</button>
+      <p id="msg" class="muted"></p>
+    </div>
+
+    <div id="content" class="panel hidden" aria-live="polite">
+      <h2>Référentiel documentaire</h2>
+      <ul>
+        <li>Procédures internes (PDF)</li>
+        <li>Guides rapides (HTML)</li>
+        <li>Templates (DOCX/ODS)</li>
+      </ul>
+      <p><a href="index.html">← Retour à l’accueil</a></p>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ Démo : code en clair côté client. À remplacer par une vraie auth si besoin.
+    const VALID = "DOCS2025"; // remplace par ton code
+    const gate = document.getElementById('gate');
+    const content = document.getElementById('content');
+    const msg = document.getElementById('msg');
+
+    const unlock = () => { gate.classList.add('hidden'); content.classList.remove('hidden'); };
+
+    // Option pratique : ?code=XXX dans l’URL
+    const params = new URLSearchParams(location.search);
+    if (params.get('code') === VALID) unlock();
+
+    document.getElementById('check').onclick = () => {
+      const v = document.getElementById('code').value.trim();
+      if (v === VALID) {
+        unlock();
+      } else {
+        msg.textContent = "Code invalide.";
+      }
+    };
+  </script>
+</body>
+</html>

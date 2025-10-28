@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Projets – Tableau d'information</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b1020;color:#e6ebff}
+    .container{max-width:900px;margin:0 auto;padding:28px}
+    .panel{background:#121a2f;border:1px solid #233055;border-radius:16px;padding:20px;margin-bottom:18px}
+    input,textarea,button{background:#0f1630;color:#e6ebff;border:1px solid #233055;border-radius:10px;padding:10px 14px;width:100%}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .hidden{display:none}
+    a{color:#9db8ff}
+    ul{margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Projets</h1>
+
+    <div class="panel" id="list-panel">
+      <h2>Liste (lecture)</h2>
+      <ul id="list"></ul>
+      <p class="muted">Cette vue est visible pour tous.</p>
+    </div>
+
+    <div class="panel hidden" id="edit-panel">
+      <h2>Édition (éditeur/admin)</h2>
+      <div class="row" style="flex-direction:column">
+        <input id="pname" placeholder="Nom du projet" />
+        <textarea id="pdesc" rows="4" placeholder="Description"></textarea>
+        <button id="add">Ajouter / Mettre à jour</button>
+      </div>
+      <p class="muted">Astuce : le contenu est stocké dans <code>localStorage</code> (démo). Pas de persistance serveur.</p>
+    </div>
+
+    <p><a href="index.html">← Retour à l’accueil</a></p>
+  </div>
+
+  <script>
+    const ROLE = localStorage.getItem('role') || 'viewer';
+    const editPanel = document.getElementById('edit-panel');
+    if (ROLE === 'editor' || ROLE === 'admin') editPanel.classList.remove('hidden');
+
+    const KEY = 'projects';
+    const listEl = document.getElementById('list');
+    const read = () => JSON.parse(localStorage.getItem(KEY) || '[]');
+    const write = (arr) => localStorage.setItem(KEY, JSON.stringify(arr));
+
+    const render = () => {
+      listEl.innerHTML = '';
+      for (const p of read()) {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${p.name}</strong> — ${p.desc}`;
+        listEl.appendChild(li);
+      }
+      if (listEl.children.length === 0) listEl.innerHTML = '<li>(Aucun projet)</li>';
+    };
+
+    document.getElementById('add').onclick = () => {
+      const name = document.getElementById('pname').value.trim();
+      const desc = document.getElementById('pdesc').value.trim();
+      if (!name) return alert('Nom du projet requis.');
+      const arr = read();
+      const idx = arr.findIndex(x => x.name.toLowerCase() === name.toLowerCase());
+      if (idx >= 0) arr[idx].desc = desc; else arr.push({name, desc});
+      write(arr); render();
+      document.getElementById('pname').value = '';
+      document.getElementById('pdesc').value = '';
+    };
+
+    render();
+  </script>
+</body>
+</html>
