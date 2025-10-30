@@ -92,6 +92,8 @@
       .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
     </style>
   </head>
+
+   
   <body>
     <div class="container">
       <header>
@@ -207,5 +209,65 @@
       hideFor('a[href="projets.html"]', () => !(ROLE === 'editor' || ROLE === 'admin'));
       // Les pages "code requis" seront gérées par un prompt côté page cible.
     </script>
+  
+  <div id="authControls" style="position:fixed;bottom:10px;right:10px;">
+  <button id="loginBtn">Connexion</button>
+  <button id="logoutBtn" style="display:none;">Déconnexion</button>
+  <span id="roleBadge" style="margin-left:10px;font-weight:bold;"></span>
+</div>
+
+<script>
+const API = "https://aged-block-6820.chrisvankerre.workers.dev";
+
+// Interroger le rôle courant
+async function checkRole() {
+  const res = await fetch(API + "/me");
+  const data = await res.json();
+  document.getElementById("roleBadge").textContent = data.role;
+  // Afficher / masquer boutons
+  document.getElementById("loginBtn").style.display = data.role === "viewer" ? "" : "none";
+  document.getElementById("logoutBtn").style.display = data.role !== "viewer" ? "" : "none";
+  return data.role;
+}
+
+// Connexion
+document.getElementById("loginBtn").onclick = async () => {
+  const username = prompt("Nom d'utilisateur (admin/editor/viewer)");
+  const password = prompt("Mot de passe correspondant");
+  const res = await fetch(API + "/login", {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify({ username, password })
+  });
+  if (res.ok) {
+    alert("Connexion réussie");
+    location.reload();
+  } else {
+    alert("Échec de connexion");
+  }
+};
+
+// Déconnexion
+document.getElementById("logoutBtn").onclick = async () => {
+  await fetch(API + "/logout");
+  alert("Déconnecté");
+  location.reload();
+};
+
+// au chargement
+checkRole().then(role => {
+  // exemple : cacher le bloc admin si non admin
+  if (role !== "admin") {
+    const adminCard = document.querySelector('a[href="admin.html"]');
+    if (adminCard) adminCard.style.display = "none";
+  }
+  // exemple : cacher les fonctions d’édition si non editor/admin
+  if (role === "viewer") {
+    document.querySelectorAll(".editor-only").forEach(el => el.style.display = "none");
+  }
+});
+</script>
+  
   </body>
 </html>
+
