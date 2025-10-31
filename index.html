@@ -5,16 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Accueil — Tableau Infos</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;line-height:1.5;margin:0;color:#111}
-    header,footer{background:#0f172a;color:#fff;padding:12px 16px}
+    :root { --ink:#111; --muted:#64748b; --border:#e5e7eb; --bg:#fff; --brand:#0f172a; }
+    * { box-sizing: border-box }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;line-height:1.5;margin:0;color:var(--ink);background:var(--bg)}
+    header,footer{background:var(--brand);color:#fff;padding:12px 16px}
     nav a{color:#fff;margin-right:12px;text-decoration:none}
     main{max-width:920px;margin:24px auto;padding:0 16px}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-    .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:#fff}
-    .muted{color:#64748b}
-    .hidden{display:none}
-    #authControls{position:fixed;bottom:12px;right:12px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px;box-shadow:0 6px 16px rgba(0,0,0,.08)}
-    #authControls button{margin-right:8px}
+    .card{border:1px solid var(--border);border-radius:12px;padding:16px;background:#fff;display:block;color:inherit;text-decoration:none}
+    .muted{color:var(--muted)}
+    .hidden{display:none !important}
+    #authControls{position:fixed;bottom:12px;right:12px;background:#fff;border:1px solid var(--border);border-radius:999px;padding:8px 12px;box-shadow:0 6px 16px rgba(0,0,0,.08);display:flex;align-items:center;gap:8px}
+    #authControls button{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#374151;font-weight:600}
   </style>
 </head>
@@ -29,26 +31,36 @@
       <a href="aide.html">Aide</a>
       <a href="contact.html">Contact</a>
       <a href="mentions.html">Mentions</a>
-      <a href="admin.html" class="admin-link">Administration</a>
+      <!-- réservé admin -->
+      <a href="admin.html" data-requires-role="admin">Administration</a>
     </nav>
   </header>
 
   <main>
     <h1>Bienvenue</h1>
-    <p class="muted">Accès différencié : viewer, editor, admin.</p>
+    <p class="muted">Accès différencié : <code>viewer</code>, <code>editor</code>, <code>admin</code>.</p>
 
     <div class="grid">
       <a class="card" href="projets.html">
         <h3>Projets</h3>
         <p>Liste des projets. Édition réservée aux éditeurs et admins.</p>
       </a>
+
       <a class="card" href="documents.html">
         <h3>Documents</h3>
         <p>Certains documents peuvent nécessiter une connexion.</p>
       </a>
-      <a class="card admin-only" href="admin.html">
+
+      <!-- réservé editor OU admin -->
+      <a class="card" href="editeur.html" data-requires-role="editor">
+        <h3>Espace éditeur</h3>
+        <p>Outils d’édition réservés aux rôles editor/admin.</p>
+      </a>
+
+      <!-- réservé admin -->
+      <a class="card" href="admin.html" data-requires-role="admin">
         <h3>Outils d’administration</h3>
-        <p>Outils réservés aux administrateurs.</p>
+        <p>Réservé aux administrateurs.</p>
       </a>
     </div>
   </main>
@@ -58,87 +70,115 @@
   </footer>
 
   <!-- Contrôles d’auth -->
-  <div id="authControls">
-    <button id="loginBtn">Connexion</button>
-    <button id="logoutBtn" class="hidden">Déconnexion</button>
+  <div id="authControls" aria-live="polite">
+    <button id="loginBtn"  type="button">Connexion</button>
+    <button id="logoutBtn" type="button" class="hidden">Déconnexion</button>
     <span id="roleBadge" class="badge">viewer</span>
   </div>
 
   <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+    // ====== CONFIG ======
+    const API = "https://aged-block-6820.chrisvankerre.workers.dev"; // ton worker
+    const ROLE_KEY = "role"; // source de vérité locale (fallback)
 
-    const API = "https://aged-block-6820.chrisvankerre.workers.dev";
-    async function getRole(){
-      try{
-        const r = await fetch(API + "/me", { credentials:"include" });
-        const j = await r.json();
-        return j.role || "viewer";
-      }catch{ return "viewer"; }
+    // ====== UTIL ======
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    const getLocalRole = () => localStorage.getItem(ROLE_KEY) || "viewer";
+    const setLocalRole = (role) => localStorage.setItem(ROLE_KEY, role);
+
+    function applyRoleUI(role) {
+      const current = role || getLocalRole();
+      // data-requires-role="admin" : visible si admin
+      // data-requires-role="editor" : visible si editor OU admin
+      $$("[data-requires-role]").forEach(el => {
+        const need = el.getAttribute("data-requires-role");
+        const show = (need === "admin")  ? (current === "admin")
+                   : (need === "editor") ? (current === "editor" || current === "admin")
+                   : false;
+        el.classList.toggle("hidden", !show);
+      });
+      // boutons + badge
+      $("#roleBadge").textContent = current;
+      $("#loginBtn").classList.toggle("hidden", current !== "viewer");
+      $("#logoutBtn").classList.toggle("hidden", current === "viewer");
     }
-    async function loginFlow(){
+
+    async function getServerRole() {
+      try {
+        const r = await fetch(API + "/me", { credentials: "include" });
+        if (!r.ok) return null;
+        const j = await r.json();
+        return j && (j.role || j.user?.role) ? (j.role || j.user.role) : null;
+      } catch { return null; }
+    }
+
+    async function loginFlow() {
+      // prompts simplissimes (remplace par ton vrai formulaire si besoin)
       const username = prompt("Nom d'utilisateur (admin / editor / viewer)");
       if (!username) return;
       const password = prompt("Mot de passe");
-      if (password==null) return;
-      const r = await fetch(API + "/login", {
-        method:"POST", headers:{"content-type":"application/json"},
-        body:JSON.stringify({ username, password }), credentials:"include"
-      });
-      alert(r.ok ? "Connexion réussie" : "Échec de connexion");
-      location.reload();
+      if (password == null) return;
+
+      // 1) tentative API
+      try {
+        const r = await fetch(API + "/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ username, password }),
+          credentials: "include"
+        });
+        if (r.ok) {
+          // tenter de lire le rôle réel côté serveur
+          const serverRole = await getServerRole();
+          if (serverRole) {
+            setLocalRole(serverRole);
+            applyRoleUI(serverRole);
+            alert("Connexion réussie (serveur)");
+            return;
+          }
+        }
+      } catch { /* on passe au fallback */ }
+
+      // 2) fallback local (utile si le cookie serveur ne passe pas aujourd'hui)
+      //   - admin/editor/viewer reconnus immédiatement
+      const allowed = ["admin","editor","viewer"];
+      const norm = String(username).trim().toLowerCase();
+      const fallbackRole = allowed.includes(norm) ? norm : "viewer";
+      setLocalRole(fallbackRole);
+      applyRoleUI(fallbackRole);
+      alert("Connexion (mode local) — rôle: " + fallbackRole);
     }
-    async function logoutFlow(){
-      await fetch(API + "/logout", { credentials:"include" });
+
+    async function logoutFlow() {
+      try { await fetch(API + "/logout", { credentials: "include" }); } catch {}
+      setLocalRole("viewer");
+      applyRoleUI("viewer");
       alert("Déconnecté");
-      location.reload();
     }
-    (async () => {
-      const role = await getRole();
-      document.getElementById('roleBadge').textContent = role;
-      document.getElementById('loginBtn').classList.toggle('hidden', role!=="viewer");
-      document.getElementById('logoutBtn').classList.toggle('hidden', role==="viewer");
 
-      // visibilité des éléments
-      if (role !== "admin") {
-        document.querySelectorAll(".admin-only, .admin-link").forEach(el => el.classList.add("hidden"));
-      }
-      if (!(role==="editor" || role==="admin")) {
-        document.querySelectorAll(".editor-only").forEach(el => el.classList.add("hidden"));
+    async function boot() {
+      $("#year").textContent = new Date().getFullYear();
+
+      // Brancher boutons
+      $("#loginBtn").onclick  = loginFlow;
+      $("#logoutBtn").onclick = logoutFlow;
+
+      // 1) Essayer le serveur
+      const serverRole = await getServerRole();
+      if (serverRole) {
+        setLocalRole(serverRole);
+        applyRoleUI(serverRole);
+        return;
       }
 
-      document.getElementById('loginBtn').onclick = loginFlow;
-      document.getElementById('logoutBtn').onclick = logoutFlow;
-    })();
+      // 2) Sinon, on reste sur le rôle local (persistance d’hier)
+      applyRoleUI(getLocalRole());
+    }
+
+    // Lancer
+    boot();
   </script>
-
-  <script id="role-ui-core">
-(() => {
-  const ROLE_KEY = 'role';
-
-  // Fonction d'application des rôles (source unique)
-  window.applyRoleUI = function(){
-    const role = localStorage.getItem(ROLE_KEY) || 'viewer';
-    document.querySelectorAll('[data-requires-role]').forEach(el => {
-      const need = el.getAttribute('data-requires-role') || 'admin';
-      el.style.display = (role === 'admin' || role === need) ? '' : 'none';
-    });
-  };
-
-  // Appliquer au chargement + sur changement explicite
-  document.addEventListener('DOMContentLoaded', applyRoleUI);
-  window.addEventListener('storage', (e) => {
-    if (e.key === ROLE_KEY) applyRoleUI();
-  });
-})();
-</script>
-
-<div id="admin-only-test"
-     data-requires-role="admin"
-     style="position:fixed;left:12px;bottom:12px;padding:10px 12px;background:#222;color:#fff;border-radius:10px;font-family:system-ui;z-index:99999;">
-  Section admin — test
-</div>
-
 </body>
 </html>
-
-
