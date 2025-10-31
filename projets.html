@@ -2,102 +2,154 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Projets – Tableau d'information</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Projets — Tableau Infos</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b1020;color:#e6ebff}
-    .container{max-width:900px;margin:0 auto;padding:28px}
-    .panel{background:#121a2f;border:1px solid #233055;border-radius:16px;padding:20px;margin-bottom:18px}
-    input,textarea,button{background:#0f1630;color:#e6ebff;border:1px solid #233055;border-radius:10px;padding:10px 14px;width:100%}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;line-height:1.5;margin:0;color:#111}
+    header,footer{background:#0f172a;color:#fff;padding:12px 16px}
+    nav a{color:#fff;margin-right:12px;text-decoration:none}
+    main{max-width:920px;margin:24px auto;padding:0 16px}
+    ul{padding-left:18px}
+    li{margin:6px 0}
+    input,textarea,button{font:inherit}
     .hidden{display:none}
-    a{color:#9db8ff}
-    ul{margin-top:10px}
+    fieldset{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;background:#fff}
+    label{display:block;margin:8px 0}
+    #authControls{position:fixed;bottom:12px;right:12px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#374151;font-weight:600}
   </style>
 </head>
 <body>
-  <div class="container">
+  <header>
+    <nav>
+      <a href="index.html"><strong>Tableau Infos</strong></a>
+      <a href="projets.html">Projets</a>
+      <a href="documents.html">Documents</a>
+      <a href="equipe.html">Équipe</a>
+      <a href="infos.html">Infos</a>
+      <a href="aide.html">Aide</a>
+      <a href="contact.html">Contact</a>
+      <a href="mentions.html">Mentions</a>
+      <a href="admin.html" class="admin-link">Administration</a>
+    </nav>
+  </header>
+
+  <main>
     <h1>Projets</h1>
 
-    <div class="panel" id="list-panel">
-      <h2>Liste (lecture)</h2>
-      <ul id="list"></ul>
-      <p class="muted">Cette vue est visible pour tous.</p>
-    </div>
+    <!-- Panneau d’édition (affiché pour editor/admin) -->
+    <section id="edit-panel" class="hidden">
+      <fieldset>
+        <legend>Ajouter / Mettre à jour</legend>
+        <label>Nom du projet
+          <input id="pname" type="text" placeholder="Nom" />
+        </label>
+        <label>Description
+          <textarea id="pdesc" rows="3" placeholder="Description"></textarea>
+        </label>
+        <button id="add">Enregistrer</button>
+      </fieldset>
+    </section>
 
-    <div class="panel hidden" id="edit-panel">
-      <h2>Édition (éditeur/admin)</h2>
-      <div class="row" style="flex-direction:column">
-        <input id="pname" placeholder="Nom du projet" />
-        <textarea id="pdesc" rows="4" placeholder="Description"></textarea>
-        <button id="add">Ajouter / Mettre à jour</button>
-      </div>
-      <p class="muted">Astuce : le contenu est stocké dans <code>localStorage</code> (démo). Pas de persistance serveur.</p>
-    </div>
+    <h2>Liste</h2>
+    <ul id="list"><li>Chargement…</li></ul>
+  </main>
 
-    <p><a href="index.html">← Retour à l’accueil</a></p>
+  <footer>
+    <small>&copy; <span id="year"></span> — Tableau Infos</small>
+  </footer>
+
+  <!-- Contrôles d’auth -->
+  <div id="authControls">
+    <button id="loginBtn">Connexion</button>
+    <button id="logoutBtn" class="hidden">Déconnexion</button>
+    <span id="roleBadge" class="badge">viewer</span>
   </div>
 
   <script>
-// --- CONFIG ---
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // --- CONFIG ---
   const API = "https://aged-block-6820.chrisvankerre.workers.dev";
   const RAW_URL = "https://gist.githubusercontent.com/chrisvankerre-a11y/88c2d18e8025bfa5634c99b39e780d06/raw/projets.json";
   const API_PROXY = API + "/write";
 
-  // récupérer le rôle depuis le Worker
-  async function getRole() {
-    try {
-      const res = await fetch(API + "/me", { credentials: "include" });
-      const data = await res.json();
-      return data.role || "viewer";
-    } catch (e) {
-      console.error("Erreur rôle :", e);
-      return "viewer";
-    }
+  async function getRole(){
+    try{
+      const r = await fetch(API + "/me", { credentials:"include" });
+      const j = await r.json();
+      return j.role || "viewer";
+    }catch{ return "viewer"; }
   }
 
   const editPanel = document.getElementById('edit-panel');
   const listEl = document.getElementById('list');
 
-  // charge le rôle avant d'activer l'édition
-  getRole().then(async ROLE => {
-    console.log("Rôle actuel :", ROLE);
+  async function loadProjects() {
+    try {
+      const r = await fetch(RAW_URL, { cache: "no-store" });
+      if (!r.ok) throw new Error("raw fetch failed");
+      const txt = await r.text();
+      const data = JSON.parse(txt || "[]");
+      render(data);
+      return data;
+    } catch (e) {
+      console.error(e);
+      listEl.innerHTML = '<li>Erreur de chargement.</li>';
+      return [];
+    }
+  }
 
-    if (ROLE === 'editor' || ROLE === 'admin') editPanel.classList.remove('hidden');
+  function render(arr) {
+    listEl.innerHTML = '';
+    if (!Array.isArray(arr) || arr.length === 0) {
+      listEl.innerHTML = '<li>(Aucun projet)</li>';
+      return;
+    }
+    for (const p of arr) {
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${escapeHTML(p.name || '')}</strong> — ${escapeHTML(p.desc || '')}`;
+      listEl.appendChild(li);
+    }
+  }
 
-    async function loadProjects() {
-      try {
-        const r = await fetch(RAW_URL, { cache: "no-store" });
-        if (!r.ok) throw new Error("raw fetch failed");
-        const txt = await r.text();
-        const data = JSON.parse(txt || "[]");
-        render(data);
-        return data;
-      } catch (e) {
-        console.error(e);
-        listEl.innerHTML = '<li>Erreur de chargement.</li>';
-        return [];
-      }
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Connexion / Déconnexion
+  async function loginFlow(){
+    const username = prompt("Nom d'utilisateur (admin / editor / viewer)");
+    if (!username) return;
+    const password = prompt("Mot de passe");
+    if (password==null) return;
+    const r = await fetch(API + "/login", {
+      method:"POST", headers:{"content-type":"application/json"},
+      body:JSON.stringify({ username, password }), credentials:"include"
+    });
+    alert(r.ok ? "Connexion réussie" : "Échec de connexion");
+    location.reload();
+  }
+  async function logoutFlow(){
+    await fetch(API + "/logout", { credentials:"include" });
+    alert("Déconnecté");
+    location.reload();
+  }
+
+  (async () => {
+    const ROLE = await getRole();
+    document.getElementById('roleBadge').textContent = ROLE;
+    document.getElementById('loginBtn').classList.toggle('hidden', ROLE!=="viewer");
+    document.getElementById('logoutBtn').classList.toggle('hidden', ROLE==="viewer");
+    document.querySelector('.admin-link')?.classList.toggle('hidden', ROLE!=="admin");
+
+    if (ROLE === 'editor' || ROLE === 'admin') {
+      editPanel.classList.remove('hidden');
+      editPanel.style.display = '';
     }
 
-    function render(arr) {
-      listEl.innerHTML = '';
-      if (!Array.isArray(arr) || arr.length === 0) {
-        listEl.innerHTML = '<li>(Aucun projet)</li>';
-        return;
-      }
-      for (const p of arr) {
-        const li = document.createElement('li');
-        li.innerHTML = `<strong>${escapeHTML(p.name || '')}</strong> — ${escapeHTML(p.desc || '')}`;
-        listEl.appendChild(li);
-      }
-    }
-
-    function escapeHTML(s) {
-      return String(s).replace(/[&<>"']/g, c => (
-        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
-      ));
-    }
+    document.getElementById('loginBtn').onclick = loginFlow;
+    document.getElementById('logoutBtn').onclick = logoutFlow;
 
     document.getElementById('add')?.addEventListener('click', async () => {
       if (!(ROLE === 'editor' || ROLE === 'admin')) {
@@ -133,10 +185,7 @@
     });
 
     loadProjects();
-  });
-</script>
+  })();
+  </script>
 </body>
 </html>
-
-
-
