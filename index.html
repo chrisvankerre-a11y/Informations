@@ -110,5 +110,29 @@
       document.getElementById('logoutBtn').onclick = logoutFlow;
     })();
   </script>
+
+  <script id="role-ui-core">
+(() => {
+  const ROLE_KEY = 'role';
+
+  // Fonction d'application des rôles (source unique)
+  window.applyRoleUI = function(){
+    const role = localStorage.getItem(ROLE_KEY) || 'viewer';
+    document.querySelectorAll('[data-requires-role]').forEach(el => {
+      const need = el.getAttribute('data-requires-role') || 'admin';
+      el.style.display = (role === 'admin' || role === need) ? '' : 'none';
+    });
+  };
+
+  // Appliquer au chargement + sur changement explicite
+  document.addEventListener('DOMContentLoaded', applyRoleUI);
+  window.addEventListener('storage', (e) => {
+    if (e.key === ROLE_KEY) applyRoleUI();
+  });
+})();
+</script>
+
+
 </body>
 </html>
+
